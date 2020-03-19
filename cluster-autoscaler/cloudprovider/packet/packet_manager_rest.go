@@ -154,7 +154,7 @@ var InstanceTypes = map[string]*instanceType{
 	},
 }
 
-type packetManagerRest struct {
+type packetManagerNodePool struct {
 	baseURL           string
 	clusterName       string
 	projectID         string
@@ -169,8 +169,12 @@ type packetManagerRest struct {
 	waitTimeStep      time.Duration
 }
 
-// ConfigGlobal options only include the project-id for now
-type ConfigGlobal struct {
+type packetManagerRest struct {
+	packetManagerNodePools map[string] *packetManagerNodePool
+}
+
+// ConfigNodepool options only include the project-id for now
+type ConfigNodepool struct {
 	ClusterName       string `gcfg:"cluster-name"`
 	ProjectID         string `gcfg:"project-id"`
 	APIServerEndpoint string `gcfg:"api-server-endpoint"`
@@ -185,7 +189,7 @@ type ConfigGlobal struct {
 
 // ConfigFile is used to read and store information from the cloud configuration file
 type ConfigFile struct {
-	Global ConfigGlobal `gcfg:"global"`
+	Nodegroupdef map[string] *ConfigNodepool `gcfg:"nodegroupdef"`
 }
 
 // Device represents a Packet device
@@ -271,25 +275,31 @@ func createPacketManagerRest(configReader io.Reader, discoverOpts cloudprovider.
 		}
 	}
 
-	if opts.ClusterName == "" && cfg.Global.ClusterName == "" {
-		klog.Fatalf("The cluster-name parameter must be set")
-	} else if opts.ClusterName != "" && cfg.Global.ClusterName == "" {
-		cfg.Global.ClusterName = opts.ClusterName
+	var manager packetManagerRest
+	manager.packetManagerNodePools = make(map[string]*packetManagerNodePool)
+
+	for nodepool, _ := range cfg.Nodegroupdef {
+		if opts.ClusterName == "" && cfg.Nodegroupdef[nodepool].ClusterName == "" {
+			klog.Fatalf("The cluster-name parameter must be set")
+		} else if opts.ClusterName != "" && cfg.Nodegroupdef[nodepool].ClusterName == "" {
+			cfg.Nodegroupdef[nodepool].ClusterName = opts.ClusterName
+		}
+
+		manager.packetManagerNodePools[nodepool] = &packetManagerNodePool{
+			baseURL:           "https://api.packet.net",
+			clusterName:       cfg.Nodegroupdef[nodepool].ClusterName,
+			projectID:         cfg.Nodegroupdef[nodepool].ProjectID,
+			apiServerEndpoint: cfg.Nodegroupdef[nodepool].APIServerEndpoint,
+			facility:          cfg.Nodegroupdef[nodepool].Facility,
+			plan:              cfg.Nodegroupdef[nodepool].Plan,
+			os:                cfg.Nodegroupdef[nodepool].OS,
+			billing:           cfg.Nodegroupdef[nodepool].Billing,
+			cloudinit:         cfg.Nodegroupdef[nodepool].CloudInit,
+			reservation:       cfg.Nodegroupdef[nodepool].Reservation,
+			hostnamePattern:   cfg.Nodegroupdef[nodepool].HostnamePattern,
+		}
 	}
 
-	manager := packetManagerRest{
-		baseURL:           "https://api.packet.net",
-		clusterName:       cfg.Global.ClusterName,
-		projectID:         cfg.Global.ProjectID,
-		apiServerEndpoint: cfg.Global.APIServerEndpoint,
-		facility:          cfg.Global.Facility,
-		plan:              cfg.Global.Plan,
-		os:                cfg.Global.OS,
-		billing:           cfg.Global.Billing,
-		cloudinit:         cfg.Global.CloudInit,
-		reservation:       cfg.Global.Reservation,
-		hostnamePattern:   cfg.Global.HostnamePattern,
-	}
 	return &manager, nil
 }
 
