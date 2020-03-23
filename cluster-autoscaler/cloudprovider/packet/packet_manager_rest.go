@@ -29,6 +29,7 @@ import (
 	"os"
 	"text/template"
 	"time"
+	"strings"
 
 	"gopkg.in/gcfg.v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -359,10 +360,18 @@ func (mgr *packetManagerRest) getPacketDevice(id string) (*Device, error) {
 	return &device, fmt.Errorf(resp.Status, resp.Body)
 }
 
-/*func (mgr *packetManagerRest) NodeGroupForNode(id string) (string, error) {
-	device := mgr.getPacketDevice(id)
-	device.tags
-}*/
+func (mgr *packetManagerRest) NodeGroupForNode(nodeId string) (string, error) {
+	device, err := mgr.getPacketDevice(strings.TrimPrefix(nodeId, "packet://"))
+	if err != nil {
+		return "", fmt.Errorf("Could not find group for node: %s %s", nodeId, err)
+	}
+	for _, t := range device.Tags {
+		if strings.HasPrefix(t, "k8s-nodepool-") {
+			return strings.TrimPrefix(t, "k8s-nodepool-"), nil
+		}
+	}
+	return "", fmt.Errorf("Could not find group for node: %s", nodeId)
+}
 
 // nodeGroupSize gets the current size of the nodegroup as reported by packet tags.
 func (mgr *packetManagerRest) nodeGroupSize(nodegroup string) (int, error) {
