@@ -35,6 +35,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/autoscaler/cluster-autoscaler/cloudprovider"
 	"k8s.io/autoscaler/cluster-autoscaler/config"
 	"k8s.io/autoscaler/cluster-autoscaler/utils/gpu"
@@ -561,6 +562,19 @@ func (mgr *packetManagerRest) deleteNodes(nodegroup string, nodes []NodeRef, upd
 	return nil
 }
 
+func buildGenericLabels(instanceType string) map[string]string {
+	result := make(map[string]string)
+
+	result[kubeletapis.LabelArch] = "amd64"
+	result[kubeletapis.LabelOS] = "linux"
+	result[apiv1.LabelInstanceType] = instanceType
+	result[apiv1.LabelZoneRegion] = ""
+	result[apiv1.LabelZoneFailureDomain] = "0"
+
+	result[apiv1.LabelHostname] = ""
+	return result
+}
+
 // templateNodeInfo returns a NodeInfo with a node template based on the packet plan
 // that is used to create nodes in a given node group.
 func (mgr *packetManagerRest) templateNodeInfo(nodegroup string) (*schedulernodeinfo.NodeInfo, error) {
@@ -586,6 +600,9 @@ func (mgr *packetManagerRest) templateNodeInfo(nodegroup string) (*schedulernode
 
 	node.Status.Allocatable = node.Status.Capacity
 	node.Status.Conditions = cloudprovider.BuildReadyConditions()
+
+	// GenericLabels
+	node.Labels = cloudprovider.JoinStringMaps(node.Labels, buildGenericLabels(mgr.getNodePoolDefinition(nodegroup).plan))
 
 	nodeInfo := schedulernodeinfo.NewNodeInfo(cloudprovider.BuildKubeProxy(nodegroup))
 	nodeInfo.SetNode(&node)
