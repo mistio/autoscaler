@@ -191,6 +191,7 @@ type ConfigNodepool struct {
 
 // ConfigFile is used to read and store information from the cloud configuration file
 type ConfigFile struct {
+	DefaultNodegroupdef ConfigNodepool `gcfg:"global"`
 	Nodegroupdef map[string] *ConfigNodepool `gcfg:"nodegroupdef"`
 }
 
@@ -279,6 +280,11 @@ func createPacketManagerRest(configReader io.Reader, discoverOpts cloudprovider.
 
 	var manager packetManagerRest
 	manager.packetManagerNodePools = make(map[string]*packetManagerNodePool)
+
+	_, ok := cfg.Nodegroupdef["default"]
+	if !ok {
+		cfg.Nodegroupdef["default"] = &cfg.DefaultNodegroupdef
+	}
 
 	for nodepool, _ := range cfg.Nodegroupdef {
 		if opts.ClusterName == "" && cfg.Nodegroupdef[nodepool].ClusterName == "" {
