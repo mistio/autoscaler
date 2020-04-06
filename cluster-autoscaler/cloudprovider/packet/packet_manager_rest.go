@@ -27,19 +27,19 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 	"time"
-	"strings"
 
 	"gopkg.in/gcfg.v1"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/autoscaler/cluster-autoscaler/cloudprovider"
 	"k8s.io/autoscaler/cluster-autoscaler/config"
 	"k8s.io/autoscaler/cluster-autoscaler/utils/gpu"
 	"k8s.io/klog"
+	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
@@ -191,8 +191,8 @@ type ConfigNodepool struct {
 
 // ConfigFile is used to read and store information from the cloud configuration file
 type ConfigFile struct {
-	DefaultNodegroupdef ConfigNodepool `gcfg:"global"`
-	Nodegroupdef map[string] *ConfigNodepool `gcfg:"nodegroupdef"`
+	DefaultNodegroupdef ConfigNodepool             `gcfg:"global"`
+	Nodegroupdef        map[string]*ConfigNodepool `gcfg:"nodegroupdef"`
 }
 
 // Device represents a Packet device
@@ -237,6 +237,7 @@ type CloudInitTemplateData struct {
 	BootstrapTokenID     string
 	BootstrapTokenSecret string
 	APIServerEndpoint    string
+	NodeGroup            string
 }
 
 // HostnameTemplateData represents the template variables used to construct host names for new nodes
@@ -281,8 +282,7 @@ func createPacketManagerRest(configReader io.Reader, discoverOpts cloudprovider.
 	var manager packetManagerRest
 	manager.packetManagerNodePools = make(map[string]*packetManagerNodePool)
 
-	_, ok := cfg.Nodegroupdef["default"]
-	if !ok {
+	if _, ok := cfg.Nodegroupdef["default"]; !ok {
 		cfg.Nodegroupdef["default"] = &cfg.DefaultNodegroupdef
 	}
 
@@ -296,8 +296,8 @@ func createPacketManagerRest(configReader io.Reader, discoverOpts cloudprovider.
 		manager.packetManagerNodePools[nodepool] = &packetManagerNodePool{
 			baseURL:           "https://api.packet.net",
 			clusterName:       cfg.Nodegroupdef[nodepool].ClusterName,
-			projectID:         cfg.Nodegroupdef[nodepool].ProjectID,
-			apiServerEndpoint: cfg.Nodegroupdef[nodepool].APIServerEndpoint,
+			projectID:         cfg.Nodegroupdef["default"].ProjectID,
+			apiServerEndpoint: cfg.Nodegroupdef["default"].APIServerEndpoint,
 			facility:          cfg.Nodegroupdef[nodepool].Facility,
 			plan:              cfg.Nodegroupdef[nodepool].Plan,
 			os:                cfg.Nodegroupdef[nodepool].OS,
@@ -367,7 +367,10 @@ func (mgr *packetManagerRest) getPacketDevice(id string) (*Device, error) {
 	return &device, fmt.Errorf(resp.Status, resp.Body)
 }
 
-func (mgr *packetManagerRest) NodeGroupForNode(nodeId string) (string, error) {
+func (mgr *packetManagerRest) NodeGroupForNode(labels map[string]string, nodeId string) (string, error) {
+	if nodegroup, ok := labels["pool"]; ok {
+		return nodegroup, nil
+	}
 	device, err := mgr.getPacketDevice(strings.TrimPrefix(nodeId, "packet://"))
 	if err != nil {
 		return "", fmt.Errorf("Could not find group for node: %s %s", nodeId, err)
@@ -410,6 +413,7 @@ func (mgr *packetManagerRest) createNode(cloudinit, nodegroup string) {
 		BootstrapTokenID:     os.Getenv("BOOTSTRAP_TOKEN_ID"),
 		BootstrapTokenSecret: os.Getenv("BOOTSTRAP_TOKEN_SECRET"),
 		APIServerEndpoint:    mgr.getNodePoolDefinition(nodegroup).apiServerEndpoint,
+		NodeGroup:            nodegroup,
 	}
 	ud := renderTemplate(cloudinit, udvars)
 	hnvars := HostnameTemplateData{
@@ -568,7 +572,7 @@ func (mgr *packetManagerRest) deleteNodes(nodegroup string, nodes []NodeRef, upd
 	return nil
 }
 
-func buildGenericLabels(instanceType string) map[string]string {
+func buildGenericLabels(nodegroup string, instanceType string) map[string]string {
 	result := make(map[string]string)
 
 	result[kubeletapis.LabelArch] = "amd64"
@@ -576,8 +580,9 @@ func buildGenericLabels(instanceType string) map[string]string {
 	result[apiv1.LabelInstanceType] = instanceType
 	result[apiv1.LabelZoneRegion] = ""
 	result[apiv1.LabelZoneFailureDomain] = "0"
-
 	result[apiv1.LabelHostname] = ""
+	result["pool"] = nodegroup
+
 	return result
 }
 
@@ -608,14 +613,14 @@ func (mgr *packetManagerRest) templateNodeInfo(nodegroup string) (*schedulernode
 	node.Status.Conditions = cloudprovider.BuildReadyConditions()
 
 	// GenericLabels
-	node.Labels = cloudprovider.JoinStringMaps(node.Labels, buildGenericLabels(mgr.getNodePoolDefinition(nodegroup).plan))
+	node.Labels = cloudprovider.JoinStringMaps(node.Labels, buildGenericLabels(nodegroup, mgr.getNodePoolDefinition(nodegroup).plan))
 
 	nodeInfo := schedulernodeinfo.NewNodeInfo(cloudprovider.BuildKubeProxy(nodegroup))
 	nodeInfo.SetNode(&node)
 	return nodeInfo, nil
 }
 
-func (mgr *packetManagerRest) getNodePoolDefinition(nodegroup string)  *packetManagerNodePool{
+func (mgr *packetManagerRest) getNodePoolDefinition(nodegroup string) *packetManagerNodePool {
 	NodePoolDefinition, ok := mgr.packetManagerNodePools[nodegroup]
 	if !ok {
 		NodePoolDefinition, ok = mgr.packetManagerNodePools["default"]

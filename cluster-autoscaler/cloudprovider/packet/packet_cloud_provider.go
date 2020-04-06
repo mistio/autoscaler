@@ -96,7 +96,7 @@ func (pcp *packetCloudProvider) NodeGroupForNode(node *apiv1.Node) (cloudprovide
 	if _, found := node.ObjectMeta.Labels["node-role.kubernetes.io/master"]; found {
 		return nil, nil
 	}
-	nodeGroupId, err := pcp.packetManager.NodeGroupForNode(node.Spec.ProviderID)
+	nodeGroupId, err := pcp.packetManager.NodeGroupForNode(node.ObjectMeta.Labels, node.Spec.ProviderID)
 	if err != nil {
 		return nil, err
 	}
