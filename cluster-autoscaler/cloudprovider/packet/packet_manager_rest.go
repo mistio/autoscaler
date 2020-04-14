@@ -172,7 +172,7 @@ type packetManagerNodePool struct {
 }
 
 type packetManagerRest struct {
-	packetManagerNodePools map[string] *packetManagerNodePool
+	packetManagerNodePools map[string]*packetManagerNodePool
 }
 
 // ConfigNodepool options only include the project-id for now
@@ -286,7 +286,7 @@ func createPacketManagerRest(configReader io.Reader, discoverOpts cloudprovider.
 		cfg.Nodegroupdef["default"] = &cfg.DefaultNodegroupdef
 	}
 
-	for nodepool, _ := range cfg.Nodegroupdef {
+	for nodepool := range cfg.Nodegroupdef {
 		if opts.ClusterName == "" && cfg.Nodegroupdef[nodepool].ClusterName == "" {
 			klog.Fatalf("The cluster-name parameter must be set")
 		} else if opts.ClusterName != "" && cfg.Nodegroupdef[nodepool].ClusterName == "" {

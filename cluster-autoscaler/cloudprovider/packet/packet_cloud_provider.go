@@ -17,9 +17,9 @@ limitations under the License.
 package packet
 
 import (
+	"fmt"
 	"io"
 	"os"
-	"fmt"
 	"sync"
 
 	apiv1 "k8s.io/api/core/v1"
