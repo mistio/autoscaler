@@ -40,9 +40,9 @@ func TestIncreaseDecreaseSize(t *testing.T) {
 	} else {
 		// Set up a mock Packet API
 		m = newTestPacketManagerRest(t, server.URL)
-		server.On("handle", "/projects/"+m.projectID+"/devices").Return(listPacketDevicesResponse).Times(4)
-		server.On("handle", "/projects/"+m.projectID+"/devices").Return(listPacketDevicesResponseAfterCreate).Times(2)
-		server.On("handle", "/projects/"+m.projectID+"/devices").Return(listPacketDevicesResponse)
+		server.On("handle", "/projects/"+m.packetManagerNodePools["default"].projectID+"/devices").Return(listPacketDevicesResponse).Times(4)
+		server.On("handle", "/projects/"+m.packetManagerNodePools["default"].projectID+"/devices").Return(listPacketDevicesResponseAfterCreate).Times(2)
+		server.On("handle", "/projects/"+m.packetManagerNodePools["default"].projectID+"/devices").Return(listPacketDevicesResponse)
 	}
 	clusterUpdateLock := sync.Mutex{}
 	ng := &packetNodeGroup{

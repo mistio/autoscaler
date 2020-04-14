@@ -42,17 +42,21 @@ const cloudinitDefault = "IyEvYmluL2Jhc2gKZXhwb3J0IERFQklBTl9GUk9OVEVORD1ub25pbn
 
 func newTestPacketManagerRest(t *testing.T, url string) *packetManagerRest {
 	manager := &packetManagerRest{
-		baseURL:           url,
-		clusterName:       "cluster1",
-		projectID:         "3d27fd13-0466-4878-be22-9a4b5595a3df",
-		apiServerEndpoint: "147.75.102.15:6443",
-		facility:          "ams1",
-		os:                "ubuntu_18_04",
-		plan:              "t1.small.x86",
-		billing:           "hourly",
-		cloudinit:         cloudinitDefault,
-		reservation:       "prefer",
-		hostnamePattern:   "k8s-{{.ClusterName}}-{{.NodeGroup}}-{{.RandString8}}",
+		packetManagerNodePools: map[string]*packetManagerNodePool{
+			"default": {
+				baseURL:           url,
+				clusterName:       "cluster1",
+				projectID:         "3d27fd13-0466-4878-be22-9a4b5595a3df",
+				apiServerEndpoint: "147.75.102.15:6443",
+				facility:          "ams1",
+				plan:              "t1.small.x86",
+				os:                "ubuntu_18_04",
+				billing:           "hourly",
+				cloudinit:         cloudinitDefault,
+				reservation:       "prefer",
+				hostnamePattern:   "k8s-{{.ClusterName}}-{{.NodeGroup}}-{{.RandString8}}",
+			},
+		},
 	}
 	return manager
 }
@@ -66,7 +70,7 @@ func TestListPacketDevices(t *testing.T) {
 	} else {
 		// Set up a mock Packet API
 		m = newTestPacketManagerRest(t, server.URL)
-		server.On("handle", "/projects/"+m.projectID+"/devices").Return(listPacketDevicesResponse).Times(2)
+		server.On("handle", "/projects/"+m.packetManagerNodePools["default"].projectID+"/devices").Return(listPacketDevicesResponse).Times(2)
 	}
 
 	_, err := m.listPacketDevices()
