@@ -174,10 +174,6 @@ func BuildPacket(opts config.AutoscalingOptions, do cloudprovider.NodeGroupDisco
 		klog.Fatalf("Must specify at least one node group with --nodes=<min>:<max>:<name>,...")
 	}
 
-	//if len(do.NodeGroupSpecs) > 1 {
-	//	klog.Fatalf("Packet autoscaler only supports a single nodegroup for now")
-	//}
-
 	clusterUpdateLock := sync.Mutex{}
 
 	for _, nodegroupSpec := range do.NodeGroupSpecs {

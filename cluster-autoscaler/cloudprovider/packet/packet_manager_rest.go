@@ -50,6 +50,11 @@ type instanceType struct {
 	GPU          int64
 }
 
+var (
+	MaxHttpRetries int = 3
+	HttpRetryDelay time.Duration = 100 * time.Millisecond
+)
+
 // InstanceTypes is a map of packet resources
 var InstanceTypes = map[string]*instanceType{
 	"c1.large.arm": {
@@ -319,7 +324,15 @@ func (mgr *packetManagerRest) listPacketDevices() (*Devices, error) {
 	req.Header.Set("X-Auth-Token", packetAuthToken)
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	resp, err := client.Do(req)
+	var	err error
+	var resp *http.Response
+	for i := 0; i < MaxHttpRetries; i++ {
+		resp, err = client.Do(req)
+		if err == nil || (resp != nil && resp.StatusCode < 500 && resp.StatusCode != 0) {
+			break
+		}
+		time.Sleep(HttpRetryDelay)
+	}
 	if err != nil {
 		panic(err)
 		// klog.Fatalf("Error listing nodes: %v", err)
@@ -347,7 +360,15 @@ func (mgr *packetManagerRest) getPacketDevice(id string) (*Device, error) {
 	req.Header.Set("X-Auth-Token", packetAuthToken)
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	resp, err := client.Do(req)
+	var	err error
+	var resp *http.Response
+	for i := 0; i < MaxHttpRetries; i++ {
+		resp, err = client.Do(req)
+		if err == nil || (resp != nil && resp.StatusCode < 500 && resp.StatusCode != 0) {
+			break
+		}
+		time.Sleep(HttpRetryDelay)
+	}
 	if err != nil {
 		panic(err)
 		// klog.Fatalf("Error listing nodes: %v", err)

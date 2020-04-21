@@ -147,7 +147,6 @@ func TestIncreaseDecreaseSize(t *testing.T) {
 	err = ngPool2.DeleteNodes(nodesPool2)
 	assert.NoError(t, err)
 
-
 	err = ngPool3.DeleteNodes(nodesPool3)
 	assert.NoError(t, err)
 
