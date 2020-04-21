@@ -51,8 +51,8 @@ type instanceType struct {
 }
 
 var (
-	MaxHttpRetries int = 3
-	HttpRetryDelay time.Duration = 100 * time.Millisecond
+	maxHttpRetries int           = 3
+	httpRetryDelay time.Duration = 100 * time.Millisecond
 )
 
 // InstanceTypes is a map of packet resources
@@ -291,6 +291,10 @@ func createPacketManagerRest(configReader io.Reader, discoverOpts cloudprovider.
 		cfg.Nodegroupdef["default"] = &cfg.DefaultNodegroupdef
 	}
 
+	if *cfg.Nodegroupdef["default"] == (ConfigNodepool{}) {
+		klog.Fatalf("No \"default\" or [Global] nodepool definition was found")
+	}
+
 	for nodepool := range cfg.Nodegroupdef {
 		if opts.ClusterName == "" && cfg.Nodegroupdef[nodepool].ClusterName == "" {
 			klog.Fatalf("The cluster-name parameter must be set")
@@ -324,14 +328,14 @@ func (mgr *packetManagerRest) listPacketDevices() (*Devices, error) {
 	req.Header.Set("X-Auth-Token", packetAuthToken)
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	var	err error
+	var err error
 	var resp *http.Response
-	for i := 0; i < MaxHttpRetries; i++ {
+	for i := 0; i < maxHttpRetries; i++ {
 		resp, err = client.Do(req)
 		if err == nil || (resp != nil && resp.StatusCode < 500 && resp.StatusCode != 0) {
 			break
 		}
-		time.Sleep(HttpRetryDelay)
+		time.Sleep(httpRetryDelay)
 	}
 	if err != nil {
 		panic(err)
@@ -360,14 +364,14 @@ func (mgr *packetManagerRest) getPacketDevice(id string) (*Device, error) {
 	req.Header.Set("X-Auth-Token", packetAuthToken)
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	var	err error
+	var err error
 	var resp *http.Response
-	for i := 0; i < MaxHttpRetries; i++ {
+	for i := 0; i < maxHttpRetries; i++ {
 		resp, err = client.Do(req)
 		if err == nil || (resp != nil && resp.StatusCode < 500 && resp.StatusCode != 0) {
 			break
 		}
-		time.Sleep(HttpRetryDelay)
+		time.Sleep(httpRetryDelay)
 	}
 	if err != nil {
 		panic(err)

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"sync"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -174,12 +175,18 @@ func BuildPacket(opts config.AutoscalingOptions, do cloudprovider.NodeGroupDisco
 		klog.Fatalf("Must specify at least one node group with --nodes=<min>:<max>:<name>,...")
 	}
 
+	validNodepoolName := regexp.MustCompile(`^[a-z0-9A-Z]+[a-z0-9A-Z\-\.\_]*[a-z0-9A-Z]+$|^[a-z0-9A-Z]{1}$`)
+
 	clusterUpdateLock := sync.Mutex{}
 
 	for _, nodegroupSpec := range do.NodeGroupSpecs {
 		spec, err := dynamic.SpecFromString(nodegroupSpec, scaleToZeroSupported)
 		if err != nil {
 			klog.Fatalf("Could not parse node group spec %s: %v", nodegroupSpec, err)
+		}
+
+		if !validNodepoolName.MatchString(spec.Name) || len(spec.Name) > 63 {
+			klog.Fatalf("Invalid nodepool name: %s\nMust be a valid kubernetes label value", spec.Name)
 		}
 
 		ng := packetNodeGroup{
