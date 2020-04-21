@@ -111,7 +111,7 @@ func (pcp *packetCloudProvider) NodeGroupForNode(node *apiv1.Node) (cloudprovide
 
 // Pricing is not implemented.
 func (pcp *packetCloudProvider) Pricing() (cloudprovider.PricingModel, errors.AutoscalerError) {
-	return nil, cloudprovider.ErrNotImplemented
+	return &PacketPriceModel{}, nil
 }
 
 // GetAvailableMachineTypes is not implemented.
