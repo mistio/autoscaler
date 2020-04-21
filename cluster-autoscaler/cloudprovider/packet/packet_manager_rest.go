@@ -39,7 +39,6 @@ import (
 	"k8s.io/autoscaler/cluster-autoscaler/config"
 	"k8s.io/autoscaler/cluster-autoscaler/utils/gpu"
 	"k8s.io/klog"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
@@ -600,12 +599,12 @@ func (mgr *packetManagerRest) deleteNodes(nodegroup string, nodes []NodeRef, upd
 func buildGenericLabels(nodegroup string, instanceType string) map[string]string {
 	result := make(map[string]string)
 
-	result[kubeletapis.LabelArch] = "amd64"
-	result[kubeletapis.LabelOS] = "linux"
+	//result[kubeletapis.LabelArch] = "amd64"
+	//result[kubeletapis.LabelOS] = "linux"
 	result[apiv1.LabelInstanceType] = instanceType
-	result[apiv1.LabelZoneRegion] = ""
-	result[apiv1.LabelZoneFailureDomain] = "0"
-	result[apiv1.LabelHostname] = ""
+	//result[apiv1.LabelZoneRegion] = ""
+	//result[apiv1.LabelZoneFailureDomain] = "0"
+	//result[apiv1.LabelHostname] = ""
 	result["pool"] = nodegroup
 
 	return result
