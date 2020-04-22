@@ -58,5 +58,5 @@ func TestGetPodPrice(t *testing.T) {
 
 	price, err := model.PodPrice(pod, now, now.Add(time.Hour))
 	assert.NoError(t, err)
-	assert.True(t, price == 0.0)
+	assert.True(t, price == 1.0)
 }
