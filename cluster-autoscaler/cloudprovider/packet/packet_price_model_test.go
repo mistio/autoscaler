@@ -36,16 +36,15 @@ func TestGetNodePrice(t *testing.T) {
 	model := &PacketPriceModel{}
 	now := time.Now()
 
-	node1 := BuildTestNode("node1", plan1.CPU * 1000, plan1.MemoryMb*1024*1024)
+	node1 := BuildTestNode("node1", plan1.CPU*1000, plan1.MemoryMb*1024*1024)
 	node1.Labels = labelsPool1
 	price1, err := model.NodePrice(node1, now, now.Add(time.Hour))
 	assert.NoError(t, err)
 
-	node2 := BuildTestNode("node2", plan2.CPU * 1000, plan2.MemoryMb*1024*1024)
+	node2 := BuildTestNode("node2", plan2.CPU*1000, plan2.MemoryMb*1024*1024)
 	node2.Labels = labelsPool2
 	price2, err := model.NodePrice(node2, now, now.Add(time.Hour))
 	assert.NoError(t, err)
-
 
 	assert.True(t, price1 == 0.07)
 	assert.True(t, price2 == 1.75)
