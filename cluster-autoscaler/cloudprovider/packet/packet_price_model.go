@@ -23,7 +23,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 )
 
-// PacketPriceModel implements PriceModel interface for GCE.
+// PacketPriceModel implements PriceModel interface for Packet.
 type PacketPriceModel struct {
 }
 
@@ -58,7 +58,6 @@ func (model *PacketPriceModel) NodePrice(node *apiv1.Node, startTime time.Time, 
 			}
 		}
 	}
-	// TODO: handle SSDs.
 	return price, nil
 }
 

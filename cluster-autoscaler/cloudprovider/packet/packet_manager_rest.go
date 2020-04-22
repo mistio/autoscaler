@@ -596,7 +596,8 @@ func (mgr *packetManagerRest) deleteNodes(nodegroup string, nodes []NodeRef, upd
 	return nil
 }
 
-func buildGenericLabels(nodegroup string, instanceType string) map[string]string {
+// BuildGenericLabels builds basic labels for Packet nodes
+func BuildGenericLabels(nodegroup string, instanceType string) map[string]string {
 	result := make(map[string]string)
 
 	//result[kubeletapis.LabelArch] = "amd64"
@@ -637,7 +638,7 @@ func (mgr *packetManagerRest) templateNodeInfo(nodegroup string) (*schedulernode
 	node.Status.Conditions = cloudprovider.BuildReadyConditions()
 
 	// GenericLabels
-	node.Labels = cloudprovider.JoinStringMaps(node.Labels, buildGenericLabels(nodegroup, mgr.getNodePoolDefinition(nodegroup).plan))
+	node.Labels = cloudprovider.JoinStringMaps(node.Labels, BuildGenericLabels(nodegroup, mgr.getNodePoolDefinition(nodegroup).plan))
 
 	nodeInfo := schedulernodeinfo.NewNodeInfo(cloudprovider.BuildKubeProxy(nodegroup))
 	nodeInfo.SetNode(&node)
