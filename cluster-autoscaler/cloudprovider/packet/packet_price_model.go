@@ -70,5 +70,6 @@ func getHours(startTime time.Time, endTime time.Time) float64 {
 // PodPrice returns a theoretical minimum price of running a pod for a given
 // period of time on a perfectly matching machine.
 func (model *PacketPriceModel) PodPrice(pod *apiv1.Pod, startTime time.Time, endTime time.Time) (float64, error) {
-	return 0.0, nil
+	// Always return 1.0 since Packet is only charging per Node.
+	return 1.0, nil
 }
